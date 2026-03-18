@@ -1,0 +1,141 @@
+╔══════════════════════════════════════════════════════════════════╗
+║     CAPS Dashboard — Full Automation Setup Guide                ║
+║     Zero manual steps after this setup                         ║
+╚══════════════════════════════════════════════════════════════════╝
+
+WHAT HAPPENS AUTOMATICALLY EVERY DAY
+──────────────────────────────────────
+  8:55 AM  → Mac wakes up automatically
+  9:00 AM  → Script runs automatically
+             Downloads fresh Excel files from Google Drive
+             Builds new dashboard HTML
+             Pushes to GitHub → Vercel deploys in 10 sec
+             Shows Mac notification "✅ CAPS Dashboard Updated"
+  9:01 AM  → Your team sees fresh data on the live link
+
+
+STEP 1 — EDIT update_dashboard.py (one-time, 5 min)
+──────────────────────────────────────────────────────
+Open update_dashboard.py in TextEdit or VS Code.
+Fill in these 3 sections:
+
+  A) Google Drive File IDs  (lines ~25-35)
+     ────────────────────────────────────
+     For each Excel file:
+       1. Open it in Google Drive
+       2. Click Share → Copy link
+       3. Extract the ID from the URL:
+          https://drive.google.com/file/d/[THIS_PART]/edit
+       4. Paste it in GDRIVE_FILES
+
+     Example:
+       "Onboarding_Master_.xlsx": "1f8ZvsIqsFzJeBzjJYATrMLreJJ5lYIqL",
+
+  B) GitHub Repo Path  (line ~50)
+     ──────────────────────────────
+     GITHUB_REPO_PATH = "/Users/macbook/Documents/caps-dashboard"
+     (This is the folder where you cloned your GitHub repo)
+
+  C) Your Vercel Live URL  (line ~55)
+     ────────────────────────────────
+     LIVE_URL = "https://caps-dashboard.vercel.app"
+
+
+STEP 2 — SET UP GITHUB REPO (one-time, 5 min)
+───────────────────────────────────────────────
+  1. Go to github.com → New Repository → "caps-dashboard" → Create
+  2. Open Terminal on your Mac and run:
+       cd ~/Documents
+       git clone https://github.com/YOUR_USERNAME/caps-dashboard
+  3. Copy caps_dashboard.html into that folder, rename to index.html
+  4. Run:
+       cd ~/Documents/caps-dashboard
+       git add .
+       git commit -m "first deploy"
+       git push
+  5. Go to vercel.com → Add New Project → Import caps-dashboard repo
+  6. Deploy → copy your live URL → paste in LIVE_URL above
+
+
+STEP 3 — RUN THE SETUP SCRIPT (one-time, 2 min)
+──────────────────────────────────────────────────
+  Open Terminal and run:
+    bash /path/to/your/files/setup_automation.sh
+
+  This will:
+    ✅ Install Python packages (openpyxl, requests, gdown)
+    ✅ Register the 9 AM daily schedule
+    ✅ Set Mac to wake at 8:55 AM daily
+    ✅ Run a test to confirm everything works
+
+
+STEP 4 — MAKE SURE MAC SETTINGS ARE CORRECT
+─────────────────────────────────────────────
+  System Settings → Battery → Options:
+    ✅ "Enable Power Nap" — ON
+    ✅ "Wake for network access" — ON
+
+  System Settings → General → Login Items:
+    Make sure your user account auto-logs in
+    (Or use FileVault login, which is fine)
+
+
+MANAGEMENT COMMANDS (run in Terminal)
+──────────────────────────────────────
+  Check status:
+    launchctl list | grep caps
+
+  See last run log:
+    cat ~/Documents/caps-dashboard-files/logs/dashboard_run.log
+
+  See errors:
+    cat ~/Documents/caps-dashboard-files/logs/dashboard_error.log
+
+  Run manually right now:
+    python3 /path/to/update_dashboard.py
+
+  Disable automation:
+    launchctl unload ~/Library/LaunchAgents/com.caps.dashboard.plist
+
+  Re-enable automation:
+    launchctl load ~/Library/LaunchAgents/com.caps.dashboard.plist
+
+  Change schedule (e.g. to 8 AM):
+    Edit com.caps.dashboard.plist → change <integer>9</integer> to 8
+    Then run: setup_automation.sh again
+
+
+FILES IN THIS FOLDER
+─────────────────────
+  update_dashboard.py          ← Main script (edit config here)
+  setup_automation.sh          ← Run once to activate automation
+  com.caps.dashboard.plist     ← Mac scheduler config
+  UPDATE_DASHBOARD.bat         ← Windows manual launcher
+  update_dashboard.sh          ← Mac manual launcher
+  SETUP_GUIDE.txt              ← This file
+
+
+TROUBLESHOOTING
+────────────────
+  "Google Drive download failed"
+    → Check the file ID is correct
+    → Make sure the file is shared as "Anyone with the link"
+    → Run: pip3 install gdown --upgrade
+
+  "git push failed"
+    → Run in Terminal: cd YOUR_REPO_PATH && git push
+    → May need to authenticate: git config --global credential.helper osxkeychain
+
+  "Mac didn't wake up"
+    → System Settings → Battery → Enable Power Nap must be ON
+    → Mac must be plugged in (wake scheduling needs power)
+    → Run setup_automation.sh again to re-register wake time
+
+  "Dashboard not updating on Vercel"
+    → Check GitHub repo — did the file change?
+    → Check logs: cat logs/dashboard_run.log
+    → Vercel may need up to 30 seconds after push
+
+  Dashboard shows old data
+    → Check Google Drive file IDs are correct
+    → Run script manually to test: bash update_dashboard.sh
